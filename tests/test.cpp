@@ -442,7 +442,7 @@ void FuzzTest2() {
   const std::string &json =
     definitions[num_definitions - 1].instances[0] + "\n";
 
-  TEST_EQ(parser.Parse(json.c_str()), true);
+  TEST_EQ(parser.ParseJson(json.c_str()), true);
 
   std::string jsongen;
   flatbuffers::GeneratorOptions opts;
@@ -475,6 +475,14 @@ void FuzzTest2() {
 void TestError(const char *src, const char *error_substr) {
   flatbuffers::Parser parser;
   TEST_EQ(parser.Parse(src), false);  // Must signal error
+  // Must be the error we're expecting
+  TEST_NOTNULL(strstr(parser.error_.c_str(), error_substr));
+}
+
+// Test that parser errors are actually generated.
+void TestJsonError(const char *src, const char *error_substr) {
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.ParseJson(src), false);  // Must signal error
   // Must be the error we're expecting
   TEST_NOTNULL(strstr(parser.error_.c_str(), error_substr));
 }
@@ -522,6 +530,9 @@ void ErrorTest() {
   TestError("table X { Y:[int]; YLength:int; }", "clash");
   TestError("table X { Y:string = 1; }", "scalar");
   TestError("table X { Y:byte; } root_type X; { Y:1, Y:2 }", "more than once");
+  
+  TestJsonError("[{}]", "expected {");
+  TestJsonError("{}", "no root");
 }
 
 // Additional parser testing not covered elsewhere.

@@ -162,10 +162,8 @@ template<typename T> class SymbolTable {
     return it == dict.end() ? nullptr : it->second;
   }
 
- private:
-  std::map<std::string, T *> dict;      // quick lookup
-
  public:
+  std::map<std::string, T *> dict;      // quick lookup
   std::vector<T *> vec;  // Used to iterate in order of insertion
 };
 
@@ -296,6 +294,9 @@ class Parser {
   bool Parse(const char *_source, const char **include_paths = nullptr,
              const char *source_filename = nullptr);
 
+  // Parse the string containing JSON data
+  bool ParseJson(const char *_source);
+
   // Set the root type. May override the one set in the schema.
   bool SetRootType(const char *name);
 
@@ -315,6 +316,9 @@ class Parser {
   void ParseField(StructDef &struct_def);
   void ParseAnyValue(Value &val, FieldDef *field);
   uoffset_t ParseTable(const StructDef &struct_def);
+  uoffset_t ParseStruct(const StructDef &struct_def);
+  uoffset_t ParseTableSorted(const StructDef &struct_def);
+  uoffset_t ParseTableUnsorted(const StructDef &struct_def);
   void SerializeStruct(const StructDef &struct_def, const Value &val);
   void AddVector(bool sortbysize, int count);
   uoffset_t ParseVector(const Type &type);

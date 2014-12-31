@@ -467,6 +467,17 @@ void Parser::SerializeStruct(const StructDef &struct_def, const Value &val) {
 }
 
 uoffset_t Parser::ParseTable(const StructDef &struct_def) {
+  uoffset_t o;
+  if (struct_def.fixed)
+    o = ParseStruct(struct_def);
+  else if (struct_def.sortbysize)
+    o = ParseTableSorted(struct_def);
+  else
+    o = ParseTableUnsorted(struct_def);
+  return o;
+}
+/*
+uoffset_t Parser::ParseTable(const StructDef &struct_def) {
   Expect('{');
   size_t fieldn = 0;
   if (!IsNext('}')) for (;;) {
@@ -559,6 +570,212 @@ uoffset_t Parser::ParseTable(const StructDef &struct_def) {
       start,
       static_cast<voffset_t>(struct_def.fields.vec.size()));
   }
+}
+*/
+uoffset_t Parser::ParseStruct(const StructDef &struct_def) {
+  Expect('{');
+  size_t fieldn = 0;
+  if (!IsNext('}')) for (;;) {
+    std::string name = attribute_;
+    if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
+    auto field = struct_def.fields.Lookup(name);
+    if (!field) Error("unknown field: " + name);
+    if (fieldn >= struct_def.fields.vec.size()
+                            || struct_def.fields.vec[fieldn] != field) {
+       Error("struct field appearing out of order: " + name);
+    }
+    Expect(':');
+    Value val = field->value;
+    ParseAnyValue(val, field);
+    field_stack_.push_back(std::make_pair(val, field));
+    fieldn++;
+    if (IsNext('}')) break;
+    Expect(',');
+  }
+  if (fieldn != struct_def.fields.vec.size())
+    Error("incomplete struct initialization: " + struct_def.name);
+  
+  /*auto start = */builder_.StartStruct(struct_def.minalign);
+
+    // Go through elements in reverse, since we're building the data backwards.
+    for (auto it = field_stack_.rbegin();
+             it != field_stack_.rbegin() + fieldn; --fieldn) {
+      auto &value = it->first;
+      auto field = it->second;
+        switch (value.type.base_type) {
+          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
+            case BASE_TYPE_ ## ENUM: \
+              builder_.Pad(field->padding); \
+                builder_.PushElement(atot<CTYPE>(value.constant.c_str())); \
+              break;
+            FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD);
+          #undef FLATBUFFERS_TD
+          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
+            case BASE_TYPE_ ## ENUM: \
+              builder_.Pad(field->padding); \
+              if (IsStruct(field->value.type)) { \
+                SerializeStruct(*field->value.type.struct_def, value); \
+              } else { \
+                builder_.AddOffset(value.offset, \
+                  atot<CTYPE>(value.constant.c_str())); \
+              } \
+              break;
+            FLATBUFFERS_GEN_TYPES_POINTER(FLATBUFFERS_TD);
+          #undef FLATBUFFERS_TD
+        }
+      
+      ++it;
+      field_stack_.pop_back();
+    }
+  for (size_t i = 0; i < fieldn; i++) field_stack_.pop_back();
+
+    builder_.ClearOffsets();
+    builder_.EndStruct();
+    // Temporarily store this struct in a side buffer, since this data has to
+    // be stored in-line later in the parent object.
+    auto off = struct_stack_.size();
+    struct_stack_.insert(struct_stack_.end(),
+                         builder_.GetBufferPointer(),
+                         builder_.GetBufferPointer() + struct_def.bytesize);
+    builder_.PopBytes(struct_def.bytesize);
+    return static_cast<uoffset_t>(off);
+}
+
+uoffset_t Parser::ParseTableSorted(const StructDef &struct_def) {
+  Expect('{');
+  size_t fieldn = 0;
+  uint64_t bit = 0;
+  uint64_t set = 0;
+  if (!IsNext('}')) for (;;) {
+    std::string name = attribute_;
+    if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
+    auto field = struct_def.fields.Lookup(name);
+    if (!field) Error("unknown field: " + name);
+    
+    // starts at offset 4
+    bit = 1 << ((field->value.offset - 4) >> 1);
+    if (0 != (set & bit))
+      Error("table field appearing more than once: " + name);
+    set |= bit;
+    
+    Expect(':');
+    Value val = field->value;
+    ParseAnyValue(val, field);
+    field_stack_.push_back(std::make_pair(val, field));
+    fieldn++;
+    if (IsNext('}')) break;
+    Expect(',');
+  }
+  
+  auto start = builder_.StartTable();
+
+  for (size_t size = sizeof(largest_scalar_t);
+       size;
+       size /= 2) {
+    // Go through elements in reverse, since we're building the data backwards.
+    for (auto it = field_stack_.rbegin();
+             it != field_stack_.rbegin() + fieldn; ++it) {
+      auto &value = it->first;
+      auto field = it->second;
+      if (size == SizeOf(value.type.base_type)) {
+        switch (value.type.base_type) {
+          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
+            case BASE_TYPE_ ## ENUM: \
+              builder_.Pad(field->padding); \
+                builder_.AddElement(value.offset, \
+                             atot<CTYPE>(       value.constant.c_str()), \
+                             atot<CTYPE>(field->value.constant.c_str())); \
+              break;
+            FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD);
+          #undef FLATBUFFERS_TD
+          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
+            case BASE_TYPE_ ## ENUM: \
+              builder_.Pad(field->padding); \
+              if (IsStruct(field->value.type)) { \
+                SerializeStruct(*field->value.type.struct_def, value); \
+              } else { \
+                builder_.AddOffset(value.offset, \
+                  atot<CTYPE>(value.constant.c_str())); \
+              } \
+              break;
+            FLATBUFFERS_GEN_TYPES_POINTER(FLATBUFFERS_TD);
+          #undef FLATBUFFERS_TD
+        }
+      }
+    }
+  }
+  for (size_t i = 0; i < fieldn; i++) field_stack_.pop_back();
+
+    return builder_.EndTable(
+      start,
+      static_cast<voffset_t>(struct_def.fields.vec.size()));
+}
+
+uoffset_t Parser::ParseTableUnsorted(const StructDef &struct_def) {
+  Expect('{');
+  size_t fieldn = 0;
+  uint64_t bit = 0;
+  uint64_t set = 0;
+  if (!IsNext('}')) for (;;) {
+    std::string name = attribute_;
+    if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
+    auto field = struct_def.fields.Lookup(name);
+    if (!field) Error("unknown field: " + name);
+    
+    // starts at offset 4
+    bit = 1 << ((field->value.offset - 4) >> 1);
+    if (0 != (set & bit))
+      Error("table field appearing more than once: " + name);
+    set |= bit;
+    
+    Expect(':');
+    Value val = field->value;
+    ParseAnyValue(val, field);
+    field_stack_.push_back(std::make_pair(val, field));
+    fieldn++;
+    if (IsNext('}')) break;
+    Expect(',');
+  }
+  
+  auto start = builder_.StartTable();
+
+    // Go through elements in reverse, since we're building the data backwards.
+    for (auto it = field_stack_.rbegin();
+             it != field_stack_.rbegin() + fieldn; --fieldn) {
+      auto &value = it->first;
+      auto field = it->second;
+        switch (value.type.base_type) {
+          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
+            case BASE_TYPE_ ## ENUM: \
+              builder_.Pad(field->padding); \
+                builder_.AddElement(value.offset, \
+                             atot<CTYPE>(       value.constant.c_str()), \
+                             atot<CTYPE>(field->value.constant.c_str())); \
+              break;
+            FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD);
+          #undef FLATBUFFERS_TD
+          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
+            case BASE_TYPE_ ## ENUM: \
+              builder_.Pad(field->padding); \
+              if (IsStruct(field->value.type)) { \
+                SerializeStruct(*field->value.type.struct_def, value); \
+              } else { \
+                builder_.AddOffset(value.offset, \
+                  atot<CTYPE>(value.constant.c_str())); \
+              } \
+              break;
+            FLATBUFFERS_GEN_TYPES_POINTER(FLATBUFFERS_TD);
+          #undef FLATBUFFERS_TD
+        }
+      
+      ++it;
+      field_stack_.pop_back();
+    }
+  for (size_t i = 0; i < fieldn; i++) field_stack_.pop_back();
+
+    return builder_.EndTable(
+      start,
+      static_cast<voffset_t>(struct_def.fields.vec.size()));
 }
 
 uoffset_t Parser::ParseVector(const Type &type) {
@@ -801,7 +1018,7 @@ void Parser::ParseDecl() {
   struct_def.fixed = fixed;
   ParseMetaData(struct_def);
   struct_def.sortbysize =
-    struct_def.attributes.Lookup("original_order") == nullptr && !fixed;
+    !fixed && struct_def.attributes.Lookup("original_order") == nullptr;
   Expect('{');
   while (token_ != '}') ParseField(struct_def);
   auto force_align = struct_def.attributes.Lookup("force_align");
@@ -1062,7 +1279,8 @@ bool Parser::Parse(const char *source, const char **include_paths,
         if (builder_.GetSize()) {
           Error("cannot have more than one json object in a file");
         }
-        builder_.Finish(Offset<Table>(ParseTable(*root_struct_def)),
+        builder_.Finish(Offset<Table>(root_struct_def->sortbysize ? 
+          ParseTableSorted(*root_struct_def) : ParseTableUnsorted(*root_struct_def)),
           file_identifier_.length() ? file_identifier_.c_str() : nullptr);
       } else if (token_ == kTokenEnum) {
         ParseEnum(false);
@@ -1133,6 +1351,36 @@ bool Parser::Parse(const char *source, const char **include_paths,
   }
   assert(!struct_stack_.size());
   return true;
+}
+
+bool Parser::ParseJson(const char *source) {
+  if (*source != '{') {
+    error_ = "expected { as the first char from source";
+    return false;
+  }
+  if (!root_struct_def) {
+    error_ = "no root type set to parse json with";
+    return false;
+  }
+
+  bool success = true;
+  source_ = cursor_ = source;
+  line_ = 1;
+  error_.clear();
+  builder_.Clear();
+  try {
+    Next();
+    builder_.Finish(Offset<Table>(root_struct_def->sortbysize ? 
+                                  ParseTableSorted(*root_struct_def) : ParseTableUnsorted(*root_struct_def)));
+  } catch (const std::string &msg) {
+    error_ = msg;
+    success = false;
+  }
+  if (0 != struct_stack_.size()) {
+    struct_stack_.clear();
+    success = false;
+  }
+  return success;
 }
 
 }  // namespace flatbuffers
