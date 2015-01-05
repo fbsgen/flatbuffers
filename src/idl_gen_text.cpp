@@ -22,14 +22,18 @@
 
 namespace flatbuffers {
 
-static void GenStruct(const StructDef &struct_def, const Table *table,
-                      int indent, const GeneratorOptions &opts,
-                      std::string *_text);
+//static void GenStruct(const StructDef &struct_def, const Table *table,
+//                      int indent, const GeneratorOptions &opts,
+//                      std::string *_text);
 
 // If indentation is less than 0, that indicates we don't want any newlines
 // either.
 const char *NewLine(const GeneratorOptions &opts) {
   return opts.indent_step >= 0 ? "\n" : "";
+}
+
+const char *NewColon(const GeneratorOptions &opts) {
+  return opts.indent_step >= -1 ? ": " : ":";
 }
 
 int Indent(const GeneratorOptions &opts) {
@@ -204,7 +208,7 @@ static void GenFieldOffset(const FieldDef &fd, const Table *table, bool fixed,
 
 // Generate text for a struct or table, values separated by commas, indented,
 // and bracketed by "{}"
-static void GenStruct(const StructDef &struct_def, const Table *table,
+void GenStruct(const StructDef &struct_def, const Table *table,
                       int indent, const GeneratorOptions &opts,
                       std::string *_text) {
   std::string &text = *_text;
@@ -223,7 +227,7 @@ static void GenStruct(const StructDef &struct_def, const Table *table,
       text += NewLine(opts);
       text.append(indent + Indent(opts), ' ');
       OutputIdentifier(fd.name, opts, _text);
-      text += ": ";
+      text += NewColon(opts);
       switch (fd.value.type.base_type) {
          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
            case BASE_TYPE_ ## ENUM: \

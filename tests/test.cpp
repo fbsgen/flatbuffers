@@ -574,6 +574,11 @@ void UnicodeTest() {
   GenerateText(parser, parser.builder_.GetBufferPointer(), opts, &jsongen);
   TEST_EQ(jsongen == "{F: \"\\u20AC\\u00A2\\u30E6\\u30FC\\u30B6\\u30FC"
                      "\\u5225\\u30B5\\u30A4\\u30C8\\x01\\x80\"}", true);
+  jsongen.clear();
+  opts.indent_step = -2;
+  GenerateText(parser, parser.builder_.GetBufferPointer(), opts, &jsongen);
+  TEST_EQ(jsongen == "{F:\"\\u20AC\\u00A2\\u30E6\\u30FC\\u30B6\\u30FC"
+                     "\\u5225\\u30B5\\u30A4\\u30C8\\x01\\x80\"}", true);
 }
 
 int main(int /*argc*/, const char * /*argv*/[]) {

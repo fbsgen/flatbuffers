@@ -398,6 +398,11 @@ extern void GenerateText(const Parser &parser,
                          const GeneratorOptions &opts,
                          std::string *text);
 
+// Generate a json struct written to the string '_text'.
+extern void GenStruct(const StructDef &struct_def, const Table *table,
+                      int indent, const GeneratorOptions &opts,
+                      std::string *_text);
+
 // Generate a C++ header from the definitions in the Parser object.
 // See idl_gen_cpp.
 extern std::string GenerateCPP(const Parser &parser,
