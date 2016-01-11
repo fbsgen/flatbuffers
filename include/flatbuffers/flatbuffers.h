@@ -283,9 +283,19 @@ public:
   iterator end() { return iterator(Data(), length_); }
   const_iterator end() const { return const_iterator(Data(), length_); }
 
+  // Change elements if you have a non-const pointer to this object.
+  void Mutate(uoffset_t i, T val) {
+    assert(i < size());
+    WriteScalar(Data() + i * sizeof(T), val);
+  }
+
   // The raw data in little endian format. Use with care.
   const uint8_t *Data() const {
     return reinterpret_cast<const uint8_t *>(&length_ + 1);
+  }
+
+  uint8_t *Data() {
+    return reinterpret_cast<uint8_t *>(&length_ + 1);
   }
 
 protected:
@@ -304,6 +314,11 @@ template<typename T> static inline size_t VectorLength(const Vector<T> *v) {
 
 struct String : public Vector<char> {
   const char *c_str() const { return reinterpret_cast<const char *>(Data()); }
+  std::string str() const { return std::string(c_str(), Length()); }
+
+  bool operator <(const String &o) const {
+    return strcmp(c_str(), o.c_str()) < 0;
+  }
 };
 
 // Simple indirection for buffer allocation, to allow this to be overridden
@@ -425,6 +440,7 @@ class FlatBufferBuilder FLATBUFFERS_FINAL_CLASS {
     buf_.clear();
     offsetbuf_.clear();
     vtables_.clear();
+    minalign_ = 1;
   }
 
   // The current size of the serialized buffer, counting from the end.
@@ -725,11 +741,15 @@ class FlatBufferBuilder FLATBUFFERS_FINAL_CLASS {
   bool force_defaults_;  // Serialize values equal to their defaults anyway.
 };
 
-// Helper to get a typed pointer to the root object contained in the buffer.
-template<typename T> const T *GetRoot(const void *buf) {
+// Helpers to get a typed pointer to the root object contained in the buffer.
+template<typename T> T *GetMutableRoot(void *buf) {
   EndianCheck();
-  return reinterpret_cast<const T *>(reinterpret_cast<const uint8_t *>(buf) +
-    EndianScalar(*reinterpret_cast<const uoffset_t *>(buf)));
+  return reinterpret_cast<T *>(reinterpret_cast<uint8_t *>(buf) +
+    EndianScalar(*reinterpret_cast<uoffset_t *>(buf)));
+}
+
+template<typename T> const T *GetRoot(const void *buf) {
+  return GetMutableRoot<T>(const_cast<void *>(buf));
 }
 
 // Helper to see if the identifier in a buffer has the expected value.
@@ -871,6 +891,9 @@ class Struct FLATBUFFERS_FINAL_CLASS {
   template<typename T> T GetStruct(uoffset_t o) const {
     return reinterpret_cast<T>(&data_[o]);
   }
+  
+  const uint8_t *GetAddressOf(uoffset_t o) const { return &data_[o]; }
+  uint8_t *GetAddressOf(uoffset_t o) { return &data_[o]; }
 
  private:
   uint8_t data_[1];
@@ -897,7 +920,7 @@ class Table {
     return field_offset ? ReadScalar<T>(data_ + field_offset) : defaultval;
   }
 
-  template<typename P> P GetPointer(voffset_t field) const {
+  template<typename P> P GetPointer(voffset_t field) {
     auto field_offset = GetOptionalFieldOffset(field);
     auto p = data_ + field_offset;
     return field_offset
@@ -905,18 +928,35 @@ class Table {
       : nullptr;
   }
 
-  template<typename P> P GetStruct(voffset_t field) const {
-    auto field_offset = GetOptionalFieldOffset(field);
-    return field_offset ? reinterpret_cast<P>(data_ + field_offset) : nullptr;
+  template<typename P> P GetPointer(voffset_t field) const {
+    return const_cast<Table *>(this)->GetPointer<P>(field);
   }
 
-  template<typename T> void SetField(voffset_t field, T val) {
+  /*template<typename P> P GetStruct(voffset_t field) const {
+    auto field_offset = GetOptionalFieldOffset(field);
+    return field_offset ? reinterpret_cast<P>(data_ + field_offset) : nullptr;
+  }*/
+
+  template<typename P> P GetStruct(voffset_t field) const {
+    auto field_offset = GetOptionalFieldOffset(field);
+    auto p = const_cast<uint8_t *>(data_ + field_offset);
+    return field_offset ? reinterpret_cast<P>(p) : nullptr;
+  }
+
+  /*template<typename T> void SetField(voffset_t field, T val) {
     auto field_offset = GetOptionalFieldOffset(field);
     // If this asserts, you're trying to set a field that's not there
     // (or should we return a bool instead?).
     // check if it exists first using CheckField()
     assert(field_offset);
     WriteScalar(data_ + field_offset, val);
+  }*/
+
+  template<typename T> bool SetField(voffset_t field, T val) {
+    auto field_offset = GetOptionalFieldOffset(field);
+    if (!field_offset) return false;
+    WriteScalar(data_ + field_offset, val);
+    return true;
   }
 
   bool CheckField(voffset_t field) const {
