@@ -19,6 +19,7 @@
 #include "flatbuffers/util.h"
 
 #include "monster_test_generated.h"
+#include "mutate_test_generated.h"
 
 #include <random>
 
@@ -32,6 +33,8 @@ using namespace MyGame::Example;
   #define TEST_OUTPUT_LINE(...) \
     { printf(__VA_ARGS__); printf("\n"); }
 #endif
+
+void test_mutate();
 
 int testing_fails = 0;
 
@@ -600,6 +603,7 @@ int main(int /*argc*/, const char * /*argv*/[]) {
   EnumStringsTest();
   UnicodeTest();
 
+  test_mutate();
   if (!testing_fails) {
     TEST_OUTPUT_LINE("ALL TESTS PASSED");
     return 0;
@@ -607,5 +611,330 @@ int main(int /*argc*/, const char * /*argv*/[]) {
     TEST_OUTPUT_LINE("%d FAILED TESTS", testing_fails);
     return 1;
   }
+}
+
+static void verify_boo(const test::Boo &boo, 
+        const int32_t x, 
+        const int16_t y, 
+        const test::Size z)
+{
+    TEST_EQ(x, boo.x());
+    TEST_EQ(y, boo.y());
+    assert(z == boo.z());
+}
+
+static void verify_baz(const test::Baz *baz,
+        const bool some_bool, 
+        const int8_t some_byte,
+        const uint8_t some_ubyte,
+        const int16_t some_short,
+        const uint16_t some_ushort,
+        const int32_t some_int,
+        const uint32_t some_uint,
+        const int64_t some_long,
+        const uint64_t some_ulong,
+        const float some_float,
+        const double some_double,
+        const test::Size some_size)
+{
+    verify_boo(baz->some_boo(), 
+            101, 
+            202, 
+            test::Size::SMALL);
+    
+    TEST_EQ(some_bool, baz->some_bool());
+    TEST_EQ(some_byte, baz->some_byte());
+    TEST_EQ(some_ubyte, baz->some_ubyte());
+    TEST_EQ(some_short, baz->some_short());
+    TEST_EQ(some_ushort, baz->some_ushort());
+    TEST_EQ(some_int, baz->some_int());
+    TEST_EQ(some_uint, baz->some_uint());
+    TEST_EQ(some_long, baz->some_long());
+    TEST_EQ(some_ulong, baz->some_ulong());
+    TEST_EQ(some_float, baz->some_float());
+    TEST_EQ(some_double, baz->some_double());
+    assert(some_size == baz->some_size());
+}
+
+static void verify_bar(const test::Bar *bar,
+        test::Size size)
+{
+    verify_baz(bar->some_baz(),
+            true,
+            static_cast<int8_t>(1), 
+            static_cast<uint8_t>(2), 
+            static_cast<int16_t>(3), 
+            static_cast<uint16_t>(4), 
+            static_cast<int32_t>(5), 
+            static_cast<uint32_t>(6), 
+            static_cast<int64_t>(7), 
+            static_cast<uint64_t>(8), 
+            static_cast<float>(9), 
+            static_cast<double>(10), 
+            test::Size::MEDIUM);
+    
+    assert(size == bar->some_size());
+}
+
+static void mutate_boo(test::Boo &boo)
+{
+    auto x = boo.x(),
+        mx = x + x;
+    auto y = boo.y(),
+        // gcc ought to allow y+y since they're the same type
+        my = static_cast<int16_t>(y + y);
+    auto z = boo.z(),
+        mz = test::Size::XS;
+    
+    // mutate
+    boo.mutate_x(mx);
+    boo.mutate_y(my);
+    boo.mutate_z(mz);
+    verify_boo(const_cast<const test::Boo &>(boo), 
+            mx, 
+            my, 
+            mz);
+    
+    // restore
+    boo.mutate_x(x);
+    boo.mutate_y(y);
+    boo.mutate_z(z);
+    verify_boo(const_cast<const test::Boo &>(boo), 
+            x, 
+            y, 
+            z);
+}
+
+static void mutate_baz(test::Baz *baz)
+{
+    mutate_boo(baz->mutable_some_boo());
+    
+    auto some_bool = baz->some_bool(),
+        m_some_bool = !some_bool;
+   
+    auto some_byte = baz->some_byte(),
+        // gcc ought to infer type
+        m_some_byte = static_cast<int8_t>(some_byte + some_byte);
+    auto some_ubyte = baz->some_ubyte(),
+        // gcc ought to infer type
+        m_some_ubyte = static_cast<uint8_t>(some_ubyte + some_ubyte);
+   
+    auto some_short = baz->some_short(),
+        m_some_short = static_cast<int16_t>(some_short + some_short);
+    auto some_ushort = baz->some_ushort(),
+        m_some_ushort = static_cast<uint16_t>(some_ushort + some_ushort);
+    
+    auto some_int = baz->some_int(),
+        m_some_int = some_int + some_int;
+    auto some_uint = baz->some_uint(),
+        m_some_uint = some_uint + some_uint;
+
+    auto some_long = baz->some_long(),
+        m_some_long = some_long + some_long;
+    auto some_ulong = baz->some_ulong(),
+        m_some_ulong = some_ulong + some_ulong;
+    
+    auto some_float = baz->some_float(),
+        m_some_float = some_float + some_float;
+    auto some_double = baz->some_double(),
+        m_some_double = some_double + some_double;
+    
+    auto some_size = baz->some_size(),
+        m_some_size = test::Size::XS;
+    
+    // mutate
+    baz->mutate_some_bool(m_some_bool);
+    baz->mutate_some_byte(m_some_byte);
+    baz->mutate_some_ubyte(m_some_ubyte);
+    baz->mutate_some_short(m_some_short);
+    baz->mutate_some_ushort(m_some_ushort);
+    baz->mutate_some_int(m_some_int);
+    baz->mutate_some_uint(m_some_uint);
+    baz->mutate_some_long(m_some_long);
+    baz->mutate_some_ulong(m_some_ulong);
+    baz->mutate_some_float(m_some_float);
+    baz->mutate_some_double(m_some_double);
+    baz->mutate_some_size(m_some_size);
+    
+    verify_baz(const_cast<const test::Baz *>(baz), 
+            m_some_bool,
+            m_some_byte,
+            m_some_ubyte,
+            m_some_short,
+            m_some_ushort,
+            m_some_int,
+            m_some_uint,
+            m_some_long,
+            m_some_ulong,
+            m_some_float,
+            m_some_double,
+            m_some_size);
+    
+    // restore
+    baz->mutate_some_bool(some_bool);
+    baz->mutate_some_byte(some_byte);
+    baz->mutate_some_ubyte(some_ubyte);
+    baz->mutate_some_short(some_short);
+    baz->mutate_some_ushort(some_ushort);
+    baz->mutate_some_int(some_int);
+    baz->mutate_some_uint(some_uint);
+    baz->mutate_some_long(some_long);
+    baz->mutate_some_ulong(some_ulong);
+    baz->mutate_some_float(some_float);
+    baz->mutate_some_double(some_double);
+    baz->mutate_some_size(some_size);
+    
+    verify_baz(const_cast<const test::Baz *>(baz), 
+            some_bool,
+            some_byte,
+            some_ubyte,
+            some_short,
+            some_ushort,
+            some_int,
+            some_uint,
+            some_long,
+            some_ulong,
+            some_float,
+            some_double,
+            some_size);
+}
+
+static void mutate_bar(test::Bar *bar)
+{
+    mutate_baz(bar->mutable_some_baz());
+    
+    auto some_size = bar->some_size(),
+        m_some_size = test::Size::XS;
+    // modify
+    bar->mutate_some_size(m_some_size);
+    assert(m_some_size == bar->some_size());
+    // restore
+    bar->mutate_some_size(some_size);
+    assert(some_size == bar->some_size());
+    
+    // mutate defaults
+    auto some_bool = bar->some_bool(),
+        m_some_bool = true;
+
+    bar->mutate_some_bool(m_some_bool);
+    TEST_EQ(m_some_bool, bar->some_bool());
+    bar->mutate_some_bool(some_bool);
+    TEST_EQ(some_bool, bar->some_bool());
+
+    auto some_byte = bar->some_byte(),
+        m_some_byte = static_cast<int8_t>(some_byte + some_byte);
+    
+    bar->mutate_some_byte(m_some_byte);
+    TEST_EQ(m_some_byte, bar->some_byte());
+    bar->mutate_some_byte(some_byte);
+    TEST_EQ(some_byte, bar->some_byte());
+    // not provided
+    assert(!bar->mutate_some_ubyte(bar->some_ubyte()));
+
+    auto some_short = bar->some_short(),
+        m_some_short = static_cast<int16_t>(some_short + some_short);
+    
+    bar->mutate_some_short(m_some_short);
+    TEST_EQ(m_some_short, bar->some_short());
+    bar->mutate_some_short(some_short);
+    TEST_EQ(some_short, bar->some_short());
+    // not provided
+    assert(!bar->mutate_some_ushort(bar->some_ushort()));
+    
+    auto some_int = bar->some_int(),
+        m_some_int = some_int + some_int;
+    
+    bar->mutate_some_int(m_some_int);
+    TEST_EQ(m_some_int, bar->some_int());
+    bar->mutate_some_int(some_int);
+    TEST_EQ(some_int, bar->some_int());
+    // not provided
+    assert(!bar->mutate_some_uint(bar->some_uint()));
+
+    auto some_long = bar->some_long(),
+        m_some_long = some_long + some_long;
+    
+    bar->mutate_some_long(m_some_long);
+    TEST_EQ(m_some_long, bar->some_long());
+    bar->mutate_some_long(some_long);
+    TEST_EQ(some_long, bar->some_long());
+    // not provided
+    assert(!bar->mutate_some_ulong(bar->some_ulong()));
+    
+    auto some_float = bar->some_float(),
+        m_some_float = some_float + some_float;
+    
+    bar->mutate_some_float(m_some_float);
+    TEST_EQ(m_some_float, bar->some_float());
+    bar->mutate_some_float(some_float);
+    TEST_EQ(some_float, bar->some_float());
+    
+    auto some_double = bar->some_double(),
+        m_some_double = some_double + some_double;
+    
+    bar->mutate_some_double(m_some_double);
+    TEST_EQ(m_some_double, bar->some_double());
+    bar->mutate_some_double(some_double);
+    TEST_EQ(some_double, bar->some_double());
+}
+
+static void verify_mutate(void* flatbuf)
+{
+    auto foo = test::GetFoo(flatbuf);
+    auto bar = foo->some_bar();
+    verify_bar(bar, test::Size::LARGE);
+    
+    auto mfoo = const_cast<test::Foo *>(foo);
+    mutate_bar(mfoo->mutable_some_bar());
+    
+    verify_bar(bar, test::Size::LARGE);
+}
+
+void test_mutate()
+{
+    flatbuffers::FlatBufferBuilder fbb;
+    fbb.ForceDefaults(true);
+    
+    test::Boo boo(101, 202, test::Size::SMALL);
+    test::Baz baz(true, 
+            static_cast<int8_t>(1), 
+            static_cast<uint8_t>(2), 
+            static_cast<int16_t>(3), 
+            static_cast<uint16_t>(4), 
+            static_cast<int32_t>(5), 
+            static_cast<uint32_t>(6), 
+            static_cast<int64_t>(7), 
+            static_cast<uint64_t>(8), 
+            static_cast<float>(9), 
+            static_cast<double>(10), 
+            test::Size::MEDIUM,
+            boo);
+    
+    test::BarBuilder bbar(fbb);
+    bbar.add_some_size(test::Size::LARGE);
+    bbar.add_some_baz(&baz);
+    // force set defaults
+    bbar.add_some_bool(false);
+    bbar.add_some_byte(0);
+    bbar.add_some_short(0);
+    bbar.add_some_int(0);
+    bbar.add_some_long(0);
+    bbar.add_some_float(0);
+    bbar.add_some_double(0);
+    
+    auto bar = bbar.Finish();
+    
+    test::FooBuilder bfoo(fbb);
+    bfoo.add_some_size(test::Size::EXTRA_LARGE);
+    bfoo.add_some_baz(&baz);
+    bfoo.add_some_bar(bar);
+    
+    auto foo = bfoo.Finish();
+    fbb.Finish(foo);
+    
+    auto flatbuf = fbb.GetBufferPointer();
+    //auto size = fbb.Size();
+    
+    verify_mutate(flatbuf);
 }
 

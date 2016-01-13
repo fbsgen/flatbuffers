@@ -1,0 +1,72 @@
+
+namespace test;
+
+enum Size : byte {
+  XS = 0,
+  SMALL = 1,
+  MEDIUM = 2,
+  LARGE = 3,
+  EXTRA_LARGE = 4
+}
+
+struct Boo {
+  x: int (id: 0);
+  y: short (id: 1);
+  z: Size (id: 2);
+}
+
+table Foo {
+  some_bool: bool (id :0);
+  some_byte: byte (id :1);
+  some_ubyte: ubyte (id :2);
+  some_short: short (id :3);
+  some_ushort: ushort (id :4);
+  some_int: int (id :5);
+  some_uint: uint (id :6);
+  some_long: long (id :7);
+  some_ulong: ulong (id :8);
+  some_float: float (id :9);
+  some_double: double (id : 10);
+  some_string: string (id : 11);
+  some_bytes: string (id : 12);
+  some_baz: Baz (id : 13);
+  some_size: Size (id : 14);
+  some_bar: Bar (id : 15);
+}
+
+table Bar {
+  some_bool: bool (id: 0);
+  some_byte: byte (id: 1);
+  some_ubyte: ubyte (id: 2);
+  some_short: short (id: 3);
+  some_ushort: ushort (id: 4);
+  some_int: int (id: 5);
+  some_uint: uint (id: 6);
+  some_long: long (id: 7);
+  some_ulong: ulong (id: 8);
+  some_float: float (id: 9);
+  some_double: double (id: 10);
+  some_string: string (id: 11);
+  some_bytes: string (id: 12);
+  some_baz: Baz (id: 13);
+  some_size: Size (id: 14);
+}
+
+struct Baz {
+  some_bool: bool (id: 0);
+  some_byte: byte (id: 1);
+  some_ubyte: ubyte (id: 2);
+  some_short: short (id: 3);
+  some_ushort: ushort (id: 4);
+  some_int: int (id: 5);
+  some_uint: uint (id: 6);
+  some_long: long (id: 7);
+  some_ulong: ulong (id: 8);
+  some_float: float (id: 9);
+  some_double: double (id: 10);
+  some_size: Size (id: 11);
+  some_boo: Boo (id: 12);
+}
+
+root_type Foo;
+
