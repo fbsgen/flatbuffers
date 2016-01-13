@@ -68,5 +68,3 @@ struct Baz {
   some_boo: Boo (id: 12);
 }
 
-root_type Foo;
-

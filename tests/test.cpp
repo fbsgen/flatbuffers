@@ -880,7 +880,8 @@ static void mutate_bar(test::Bar *bar)
 
 static void verify_mutate(void* flatbuf)
 {
-    auto foo = test::GetFoo(flatbuf);
+    //auto foo = test::GetFoo(flatbuf);
+    auto foo = flatbuffers::GetRoot<test::Foo>(flatbuf);
     auto bar = foo->some_bar();
     verify_bar(bar, test::Size::LARGE);
     
