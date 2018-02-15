@@ -403,7 +403,8 @@ struct GeneratorOptions {
 extern void GenerateText(const Parser &parser,
                          const void *flatbuffer,
                          const GeneratorOptions &opts,
-                         std::string *text);
+                         std::string *text,
+                         bool numeric = false);
 
 // Generate a json struct written to the string '_text'.
 extern void GenStruct(const StructDef &struct_def, const Table *table,

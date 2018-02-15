@@ -260,7 +260,8 @@ void GenStruct(const StructDef &struct_def, const Table *table,
 
 // Generate a text representation of a flatbuffer in JSON format.
 void GenerateText(const Parser &parser, const void *flatbuffer,
-                  const GeneratorOptions &opts, std::string *_text) {
+                  const GeneratorOptions &opts, std::string *_text,
+                  bool numeric) {
   std::string &text = *_text;
   assert(parser.root_struct_def);  // call SetRootType()
   text.reserve(1024);   // Reduce amount of inevitable reallocs.
