@@ -237,7 +237,7 @@ void GenStruct(const StructDef &struct_def, const Table *table,
       text += NewLine(opts);
       text.append(indent + Indent(opts), ' ');
       if (numeric)
-        OutputNumeric(fieldout, opts, _text);
+        OutputNumeric(fd.id + 1, opts, _text);
       else
         OutputIdentifier(fd.name, opts, _text);
       text += NewColon(opts);

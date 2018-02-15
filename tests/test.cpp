@@ -196,14 +196,6 @@ void ParseAndGenerateStatTest() {
   TEST_EQ(true, flatbuffers::LoadFile(
     "tests/stat-numeric.json", false, &numeric_jsonfile));
   
-  flatbuffers::Parser parser;
-  const char *include_directories[] = { "tests", nullptr };
-  TEST_EQ(true, parser.Parse(schemafile.c_str(), include_directories));
-  
-  TEST_EQ(true, parser.SetRootType("Stat"));
-  TEST_EQ(true, parser.ParseJson(jsonfile.c_str(), false));
-  TEST_EQ(true, parser.ParseJson(numeric_jsonfile.c_str(), true));
-  
   std::string json;
   std::string numeric_json;
   flatbuffers::GeneratorOptions opts;
@@ -211,9 +203,17 @@ void ParseAndGenerateStatTest() {
   opts.indent_step = -2;
   opts.output_enum_identifiers = false;
   
+  flatbuffers::Parser parser;
+  const char *include_directories[] = { "tests", nullptr };
+  TEST_EQ(true, parser.Parse(schemafile.c_str(), include_directories));
+  
+  TEST_EQ(true, parser.SetRootType("Stat"));
+  
+  TEST_EQ(true, parser.ParseJson(jsonfile.c_str(), false));
   GenerateText(parser, parser.builder_.GetBufferPointer(), opts, &json);
   fprintf(stdout, "json:\n%s\n", json.c_str());
   
+  TEST_EQ(true, parser.ParseJson(numeric_jsonfile.c_str(), true));
   GenerateText(parser, parser.builder_.GetBufferPointer(), opts, &numeric_json, true);
   fprintf(stdout, "numeric json:\n%s\n", numeric_json.c_str());
 }

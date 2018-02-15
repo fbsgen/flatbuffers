@@ -192,11 +192,12 @@ struct Definition {
 };
 
 struct FieldDef : public Definition {
-  FieldDef() : deprecated(false), required(false), padding(0) {}
+  FieldDef() : deprecated(false), required(false), id(0), padding(0) {}
 
   Value value;
   bool deprecated;
   bool required;
+  int id;
   size_t padding;  // Bytes to always pad after this field.
 };
 
@@ -409,7 +410,8 @@ extern void GenerateText(const Parser &parser,
 // Generate a json struct written to the string '_text'.
 extern void GenStruct(const StructDef &struct_def, const Table *table,
                       int indent, const GeneratorOptions &opts,
-                      std::string *_text);
+                      std::string *_text,
+                      bool numeric = false);
 
 // Generate a C++ header from the definitions in the Parser object.
 // See idl_gen_cpp.

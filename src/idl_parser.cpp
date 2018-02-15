@@ -406,18 +406,20 @@ void Parser::ParseField(StructDef &struct_def) {
     // wasn't defined elsewhere.
     LookupCreateStruct(nested->constant);
   }
-
-  if (typefield) {
+  
+  auto attr = field.attributes.Lookup("id");
+  if (!attr) {
+    field.id = struct_def.fields.vec.size() - 1;
+  } else if (!typefield) {
+    field.id = atoi(attr->constant.c_str());
+  } else {
     // If this field is a union, and it has a manually assigned id,
     // the automatically added type field should have an id as well (of N - 1).
-    auto attr = field.attributes.Lookup("id");
-    if (attr) {
-      auto id = atoi(attr->constant.c_str());
-      auto val = new Value();
-      val->type = attr->type;
-      val->constant = NumToString(id - 1);
-      typefield->attributes.Add("id", val);
-    }
+    field.id = atoi(attr->constant.c_str()) - 1;
+    auto val = new Value();
+    val->type = attr->type;
+    val->constant = NumToString(field.id);
+    typefield->attributes.Add("id", val);
   }
 
   Expect(';');
