@@ -621,6 +621,7 @@ static void verify_boo(const test::Boo &boo,
     TEST_EQ(x, boo.x());
     TEST_EQ(y, boo.y());
     assert(z == boo.z());
+    (void)z;
 }
 
 static void verify_baz(const test::Baz *baz,
@@ -654,6 +655,7 @@ static void verify_baz(const test::Baz *baz,
     TEST_EQ(some_float, baz->some_float());
     TEST_EQ(some_double, baz->some_double());
     assert(some_size == baz->some_size());
+    (void)some_size;
 }
 
 static void verify_bar(const test::Bar *bar,
@@ -674,6 +676,7 @@ static void verify_bar(const test::Bar *bar,
             test::Size::MEDIUM);
     
     assert(size == bar->some_size());
+    (void)size;
 }
 
 static void mutate_boo(test::Boo &boo)
