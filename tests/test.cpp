@@ -184,6 +184,27 @@ void AccessFlatBufferTest(const std::string &flatbuf) {
 
 }
 
+void ParseAndGenerateStatTest() {
+  // load FlatBuffer schema (.fbs) and JSON from disk
+  std::string schemafile;
+  std::string jsonfile;
+  std::string numeric_jsonfile;
+  TEST_EQ(true, flatbuffers::LoadFile(
+    "tests/monster_test.fbs", false, &schemafile));
+  TEST_EQ(true, flatbuffers::LoadFile(
+    "tests/stat.json", false, &jsonfile));
+  TEST_EQ(true, flatbuffers::LoadFile(
+    "tests/stat-numeric.json", false, &numeric_jsonfile));
+  
+  flatbuffers::Parser parser;
+  const char *include_directories[] = { "tests", nullptr };
+  TEST_EQ(true, parser.Parse(schemafile.c_str(), include_directories));
+  
+  TEST_EQ(true, parser.SetRootType("Stat"));
+  TEST_EQ(true, parser.ParseJson(jsonfile.c_str(), false));
+  TEST_EQ(true, parser.ParseJson(numeric_jsonfile.c_str(), true));
+}
+
 // example of parsing text straight into a buffer, and generating
 // text back from it:
 void ParseAndGenerateTextTest() {
@@ -593,6 +614,7 @@ int main(int /*argc*/, const char * /*argv*/[]) {
   #ifndef __ANDROID__  // requires file access
   ParseAndGenerateTextTest();
   ParseProtoTest();
+  ParseAndGenerateStatTest();
   #endif
 
   FuzzTest1();
