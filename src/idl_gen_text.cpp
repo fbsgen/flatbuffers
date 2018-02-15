@@ -49,6 +49,15 @@ void OutputIdentifier(const std::string &name, const GeneratorOptions &opts,
   if (opts.strict_json) text += "\"";
 }
 
+// Output an identifier with or without quotes depending on strictness.
+static void OutputNumeric(int num, const GeneratorOptions &opts,
+                      std::string *_text) {
+  std::string &text = *_text;
+  if (opts.strict_json) text += "\"";
+  text += NumToString(num);
+  if (opts.strict_json) text += "\"";
+}
+
 // Print (and its template specialization below for pointers) generate text
 // for a single FlatBuffer value into JSON format.
 // The general case for scalars:
@@ -210,7 +219,8 @@ static void GenFieldOffset(const FieldDef &fd, const Table *table, bool fixed,
 // and bracketed by "{}"
 void GenStruct(const StructDef &struct_def, const Table *table,
                       int indent, const GeneratorOptions &opts,
-                      std::string *_text) {
+                      std::string *_text,
+                      bool numeric) {
   std::string &text = *_text;
   text += "{";
   int fieldout = 0;
@@ -226,7 +236,10 @@ void GenStruct(const StructDef &struct_def, const Table *table,
       }
       text += NewLine(opts);
       text.append(indent + Indent(opts), ' ');
-      OutputIdentifier(fd.name, opts, _text);
+      if (numeric)
+        OutputNumeric(fieldout, opts, _text);
+      else
+        OutputIdentifier(fd.name, opts, _text);
       text += NewColon(opts);
       switch (fd.value.type.base_type) {
          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, JTYPE, GTYPE, NTYPE) \
@@ -269,7 +282,8 @@ void GenerateText(const Parser &parser, const void *flatbuffer,
             GetRoot<Table>(flatbuffer),
             0,
             opts,
-            _text);
+            _text,
+            numeric);
   text += NewLine(opts);
 }
 

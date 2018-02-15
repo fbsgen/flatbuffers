@@ -203,6 +203,19 @@ void ParseAndGenerateStatTest() {
   TEST_EQ(true, parser.SetRootType("Stat"));
   TEST_EQ(true, parser.ParseJson(jsonfile.c_str(), false));
   TEST_EQ(true, parser.ParseJson(numeric_jsonfile.c_str(), true));
+  
+  std::string json;
+  std::string numeric_json;
+  flatbuffers::GeneratorOptions opts;
+  opts.strict_json = true;
+  opts.indent_step = -1;
+  opts.output_enum_identifiers = false;
+  
+  GenerateText(parser, parser.builder_.GetBufferPointer(), opts, &json);
+  fprintf(stdout, "json:\n%s\n", json.c_str());
+  
+  GenerateText(parser, parser.builder_.GetBufferPointer(), opts, &numeric_json, true);
+  fprintf(stdout, "numeric json:\n%s\n", numeric_json.c_str());
 }
 
 // example of parsing text straight into a buffer, and generating
