@@ -1,3 +1,7 @@
+/gn-build
+/gn-out
+/.gn
+target
 *_wire.txt
 *_wire.bin
 .DS_Store
