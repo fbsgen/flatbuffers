@@ -208,7 +208,7 @@ void ParseAndGenerateStatTest() {
   std::string numeric_json;
   flatbuffers::GeneratorOptions opts;
   opts.strict_json = true;
-  opts.indent_step = -1;
+  opts.indent_step = -2;
   opts.output_enum_identifiers = false;
   
   GenerateText(parser, parser.builder_.GetBufferPointer(), opts, &json);
