@@ -641,7 +641,7 @@ uoffset_t Parser::ParseStruct(const StructDef &struct_def) {
     return static_cast<uoffset_t>(off);
 }
 
-uoffset_t Parser::ParseTableSorted(const StructDef &struct_def) {
+uoffset_t Parser::ParseTableSorted(const StructDef &struct_def, bool numeric) {
   Expect('{');
   size_t fieldn = 0;
   uint64_t bit = 0;
@@ -711,7 +711,7 @@ uoffset_t Parser::ParseTableSorted(const StructDef &struct_def) {
       static_cast<voffset_t>(struct_def.fields.vec.size()));
 }
 
-uoffset_t Parser::ParseTableUnsorted(const StructDef &struct_def) {
+uoffset_t Parser::ParseTableUnsorted(const StructDef &struct_def, bool numeric) {
   Expect('{');
   size_t fieldn = 0;
   uint64_t bit = 0;
@@ -1280,7 +1280,7 @@ bool Parser::Parse(const char *source, const char **include_paths,
           Error("cannot have more than one json object in a file");
         }
         builder_.Finish(Offset<Table>(root_struct_def->sortbysize ? 
-          ParseTableSorted(*root_struct_def) : ParseTableUnsorted(*root_struct_def)),
+          ParseTableSorted(*root_struct_def, false) : ParseTableUnsorted(*root_struct_def, false)),
           file_identifier_.length() ? file_identifier_.c_str() : nullptr);
       } else if (token_ == kTokenEnum) {
         ParseEnum(false);
@@ -1371,7 +1371,7 @@ bool Parser::ParseJson(const char *source, bool numeric) {
   try {
     Next();
     builder_.Finish(Offset<Table>(root_struct_def->sortbysize ? 
-                                  ParseTableSorted(*root_struct_def) : ParseTableUnsorted(*root_struct_def)));
+                                  ParseTableSorted(*root_struct_def, numeric) : ParseTableUnsorted(*root_struct_def, numeric)));
   } catch (const std::string &msg) {
     error_ = msg;
     success = false;

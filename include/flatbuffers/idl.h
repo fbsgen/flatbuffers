@@ -316,8 +316,8 @@ class Parser {
   void ParseAnyValue(Value &val, FieldDef *field);
   uoffset_t ParseTable(const StructDef &struct_def);
   uoffset_t ParseStruct(const StructDef &struct_def);
-  uoffset_t ParseTableSorted(const StructDef &struct_def);
-  uoffset_t ParseTableUnsorted(const StructDef &struct_def);
+  uoffset_t ParseTableSorted(const StructDef &struct_def, bool numeric = false);
+  uoffset_t ParseTableUnsorted(const StructDef &struct_def, bool numeric = false);
   void SerializeStruct(const StructDef &struct_def, const Value &val);
   void AddVector(bool sortbysize, int count);
   uoffset_t ParseVector(const Type &type);
