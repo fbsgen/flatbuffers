@@ -156,10 +156,18 @@ template<typename T> class SymbolTable {
     dict[name] = e;
     return false;
   }
-
+  
   T *Lookup(const std::string &name) const {
     auto it = dict.find(name);
     return it == dict.end() ? nullptr : it->second;
+  }
+  
+  T *Lookup(int num) const {
+    return num < 1 || num > vec.size() ? nullptr : vec[num - 1];
+  }
+  
+  T *Find(const std::string &name, bool numeric) const {
+      return numeric ? Lookup(std::atoi(name.c_str())) : Lookup(name);
   }
 
  public:

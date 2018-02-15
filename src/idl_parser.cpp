@@ -649,7 +649,7 @@ uoffset_t Parser::ParseTableSorted(const StructDef &struct_def, bool numeric) {
   if (!IsNext('}')) for (;;) {
     std::string name = attribute_;
     if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
-    auto field = struct_def.fields.Lookup(name);
+    auto field = struct_def.fields.Find(name, numeric);
     if (!field) Error("unknown field: " + name);
     
     // starts at offset 4
@@ -719,7 +719,7 @@ uoffset_t Parser::ParseTableUnsorted(const StructDef &struct_def, bool numeric) 
   if (!IsNext('}')) for (;;) {
     std::string name = attribute_;
     if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
-    auto field = struct_def.fields.Lookup(name);
+    auto field = struct_def.fields.Find(name, numeric);
     if (!field) Error("unknown field: " + name);
     
     // starts at offset 4
