@@ -294,7 +294,7 @@ class Parser {
              const char *source_filename = nullptr);
 
   // Parse the string containing JSON data
-  bool ParseJson(const char *_source);
+  bool ParseJson(const char *_source, bool numeric = false);
 
   // Set the root type. May override the one set in the schema.
   bool SetRootType(const char *name);

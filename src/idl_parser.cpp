@@ -1353,7 +1353,7 @@ bool Parser::Parse(const char *source, const char **include_paths,
   return true;
 }
 
-bool Parser::ParseJson(const char *source) {
+bool Parser::ParseJson(const char *source, bool numeric) {
   if (*source != '{') {
     error_ = "expected { as the first char from source";
     return false;
