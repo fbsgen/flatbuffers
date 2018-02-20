@@ -580,7 +580,7 @@ uoffset_t Parser::ParseStruct(const StructDef &struct_def) {
   if (!IsNext('}')) for (;;) {
     std::string name = attribute_;
     if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
-    auto field = struct_def.fields.Lookup(name);
+    auto field = struct_def.fields.Find(name, numeric_);
     if (!field) Error("unknown field: " + name);
     if (fieldn >= struct_def.fields.vec.size()
                             || struct_def.fields.vec[fieldn] != field) {
@@ -643,7 +643,7 @@ uoffset_t Parser::ParseStruct(const StructDef &struct_def) {
     return static_cast<uoffset_t>(off);
 }
 
-uoffset_t Parser::ParseTableSorted(const StructDef &struct_def, bool numeric) {
+uoffset_t Parser::ParseTableSorted(const StructDef &struct_def) {
   Expect('{');
   size_t fieldn = 0;
   uint64_t bit = 0;
@@ -651,7 +651,7 @@ uoffset_t Parser::ParseTableSorted(const StructDef &struct_def, bool numeric) {
   if (!IsNext('}')) for (;;) {
     std::string name = attribute_;
     if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
-    auto field = struct_def.fields.Find(name, numeric);
+    auto field = struct_def.fields.Find(name, numeric_);
     if (!field) Error("unknown field: " + name);
     
     // starts at offset 4
@@ -713,7 +713,7 @@ uoffset_t Parser::ParseTableSorted(const StructDef &struct_def, bool numeric) {
       static_cast<voffset_t>(struct_def.fields.vec.size()));
 }
 
-uoffset_t Parser::ParseTableUnsorted(const StructDef &struct_def, bool numeric) {
+uoffset_t Parser::ParseTableUnsorted(const StructDef &struct_def) {
   Expect('{');
   size_t fieldn = 0;
   uint64_t bit = 0;
@@ -721,7 +721,7 @@ uoffset_t Parser::ParseTableUnsorted(const StructDef &struct_def, bool numeric) 
   if (!IsNext('}')) for (;;) {
     std::string name = attribute_;
     if (!IsNext(kTokenStringConstant)) Expect(kTokenIdentifier);
-    auto field = struct_def.fields.Find(name, numeric);
+    auto field = struct_def.fields.Find(name, numeric_);
     if (!field) Error("unknown field: " + name);
     
     // starts at offset 4
@@ -1228,6 +1228,7 @@ Type Parser::ParseTypeFromProtoType() {
 bool Parser::Parse(const char *source, const char **include_paths,
                    const char *source_filename) {
   if (source_filename) included_files_[source_filename] = true;
+  numeric_ = false;
   source_ = cursor_ = source;
   line_ = 1;
   error_.clear();
@@ -1282,7 +1283,7 @@ bool Parser::Parse(const char *source, const char **include_paths,
           Error("cannot have more than one json object in a file");
         }
         builder_.Finish(Offset<Table>(root_struct_def->sortbysize ? 
-          ParseTableSorted(*root_struct_def, false) : ParseTableUnsorted(*root_struct_def, false)),
+          ParseTableSorted(*root_struct_def) : ParseTableUnsorted(*root_struct_def)),
           file_identifier_.length() ? file_identifier_.c_str() : nullptr);
       } else if (token_ == kTokenEnum) {
         ParseEnum(false);
@@ -1366,6 +1367,7 @@ bool Parser::ParseJson(const char *source, bool numeric) {
   }
 
   bool success = true;
+  numeric_ = numeric;
   source_ = cursor_ = source;
   line_ = 1;
   error_.clear();
@@ -1373,7 +1375,7 @@ bool Parser::ParseJson(const char *source, bool numeric) {
   try {
     Next();
     builder_.Finish(Offset<Table>(root_struct_def->sortbysize ? 
-                                  ParseTableSorted(*root_struct_def, numeric) : ParseTableUnsorted(*root_struct_def, numeric)));
+                                  ParseTableSorted(*root_struct_def) : ParseTableUnsorted(*root_struct_def)));
   } catch (const std::string &msg) {
     error_ = msg;
     success = false;

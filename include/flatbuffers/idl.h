@@ -272,6 +272,7 @@ class Parser {
       source_(nullptr),
       cursor_(nullptr),
       line_(1),
+      numeric_(false),
       proto_mode_(proto_mode) {
     // Just in case none are declared:
     namespaces_.push_back(new Namespace());
@@ -325,8 +326,8 @@ class Parser {
   void ParseAnyValue(Value &val, FieldDef *field);
   uoffset_t ParseTable(const StructDef &struct_def);
   uoffset_t ParseStruct(const StructDef &struct_def);
-  uoffset_t ParseTableSorted(const StructDef &struct_def, bool numeric = false);
-  uoffset_t ParseTableUnsorted(const StructDef &struct_def, bool numeric = false);
+  uoffset_t ParseTableSorted(const StructDef &struct_def);
+  uoffset_t ParseTableUnsorted(const StructDef &struct_def);
   void SerializeStruct(const StructDef &struct_def, const Value &val);
   void AddVector(bool sortbysize, int count);
   uoffset_t ParseVector(const Type &type);
@@ -359,6 +360,7 @@ class Parser {
   const char *source_, *cursor_;
   int line_;  // the current line being parsed
   int token_;
+  bool numeric_;
   bool proto_mode_;
   std::string attribute_;
   std::vector<std::string> doc_comment_;
