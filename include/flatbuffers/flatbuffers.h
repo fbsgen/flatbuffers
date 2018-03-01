@@ -315,6 +315,8 @@ template<typename T> static inline size_t VectorLength(const Vector<T> *v) {
 struct String : public Vector<char> {
   const char *c_str() const { return reinterpret_cast<const char *>(Data()); }
   std::string str() const { return std::string(c_str(), Length()); }
+  void append_to(std::string& target) const { target.append(c_str(), Length()); }
+  void assign_to(std::string& target) const { target.assign(c_str(), Length()); }
 
   bool operator <(const String &o) const {
     return strcmp(c_str(), o.c_str()) < 0;
