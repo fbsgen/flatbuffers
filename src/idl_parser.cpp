@@ -869,7 +869,7 @@ int64_t Parser::ParseIntegerFromString(Type &type) {
       next += word.length();
     }
     if (type.enum_def) {  // The field has an enum type
-      auto enum_val = type.enum_def->vals.Lookup(word);
+      auto enum_val = type.enum_def->LookupVal(word);
       if (!enum_val)
         Error("unknown enum value: " + word +
               ", for enum: " + type.enum_def->name);
@@ -983,6 +983,11 @@ void Parser::ParseEnum(bool is_union) {
       Expect(kTokenIntegerConstant);
       if (prevsize && enum_def.vals.vec[prevsize - 1]->value >= ev.value)
         Error("enum values must be specified in ascending order");
+    }
+    ParseMetaData(ev);
+    auto alias = ev.attributes.Lookup("alias");
+    if (alias) {
+      enum_def.aliased_vals[alias->constant] = &ev;
     }
   } while (IsNext(proto_mode_ ? ';' : ',') && token_ != '}');
   Expect('}');

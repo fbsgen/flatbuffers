@@ -236,12 +236,11 @@ inline size_t InlineAlignment(const Type &type) {
   return IsStruct(type) ? type.struct_def->minalign : SizeOf(type.base_type);
 }
 
-struct EnumVal {
+struct EnumVal : public Definition {
   EnumVal(const std::string &_name, int64_t _val)
     : name(_name), value(_val), struct_def(nullptr) {}
 
   std::string name;
-  std::vector<std::string> doc_comment;
   int64_t value;
   StructDef *struct_def;  // only set if this is a union
 };
@@ -259,8 +258,13 @@ struct EnumDef : public Definition {
     }
     return nullptr;
   }
+  EnumVal *LookupVal(const std::string &name) const {
+    auto it = aliased_vals.find(name);
+    return it == aliased_vals.end() ? vals.Lookup(name) : it->second;
+  }
 
   SymbolTable<EnumVal> vals;
+  std::map<std::string, EnumVal *> aliased_vals;
   bool is_union;
   Type underlying_type;
 };
@@ -276,6 +280,7 @@ class Parser {
       proto_mode_(proto_mode) {
     // Just in case none are declared:
     namespaces_.push_back(new Namespace());
+    known_attributes_.insert("alias");
     known_attributes_.insert("deprecated");
     known_attributes_.insert("required");
     known_attributes_.insert("id");
